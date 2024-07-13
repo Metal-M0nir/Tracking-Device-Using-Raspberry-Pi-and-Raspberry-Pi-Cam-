@@ -1,0 +1,96 @@
+import cv2
+import time
+from picamera2 import Picamera2
+import RPi.GPIO as GPIO
+
+# GPIO setup
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+# Servo motor GPIO pins
+servo_pin_x = 17  # Horizontal
+servo_pin_y = 27  # Vertical
+
+GPIO.setup(servo_pin_x, GPIO.OUT)
+GPIO.setup(servo_pin_y, GPIO.OUT)
+
+# Initialize PWM for the servos
+pwm_x = GPIO.PWM(servo_pin_x, 50)  # 50Hz frequency
+pwm_y = GPIO.PWM(servo_pin_y, 50)  # 50Hz frequency
+
+pwm_x.start(7.5)  # Center position
+pwm_y.start(7.5)  # Center position
+
+# Initialize Picamera2
+picam2 = Picamera2()
+picam2.start()
+
+# Load Haar Cascade for face detection
+cascade_path = '/home/faiyaz/haarcascade_frontalface_default.xml'
+face_cascade = cv2.CascadeClassifier(cascade_path)
+
+def map_servo_position(x, in_min, in_max, out_min, out_max):
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+def low_pass_filter(new_value, current_value, alpha=0.5):
+    return alpha * new_value + (1 - alpha) * current_value
+
+def set_servo_position(servo, current_pos, target_pos, speed, threshold=0.2):
+    if abs(target_pos - current_pos) > threshold:
+        step = 0.1 if target_pos > current_pos else -0.1
+        while abs(target_pos - current_pos) > 0.1:
+            current_pos += step
+            servo.ChangeDutyCycle(current_pos)
+            time.sleep(speed)
+    return current_pos
+
+try:
+    # Store the current positions of the servos
+    current_pos_x = 7.5
+    current_pos_y = 7.5
+
+    while True:
+        # Capture frame
+        frame = picam2.capture_array()
+
+        # Convert to grayscale
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Detect faces
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
+        if len(faces) > 0:
+            # Process the first detected face (or modify to handle multiple faces)
+            (x, y, w, h) = faces[0]
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+
+            # Calculate center of the face
+            center_x = x + w // 2
+            center_y = y + h // 2
+
+            # Map the center to servo position
+            servo_x_target = map_servo_position(center_x, frame.shape[1], 0, 5, 10)
+            servo_y_target = map_servo_position(center_y, 0, frame.shape[0], 2.5, 12.5)
+
+            # Apply low-pass filter to the target positions
+            servo_x_target = low_pass_filter(servo_x_target, current_pos_x, alpha=0.3)
+            servo_y_target = low_pass_filter(servo_y_target, current_pos_y, alpha=0.3)
+
+            # Smoothly move the servo to the new position
+            current_pos_x = set_servo_position(pwm_x, current_pos_x, servo_x_target, 0.01)
+            current_pos_y = set_servo_position(pwm_y, current_pos_y, servo_y_target, 0.01)
+
+        # Display the frame
+        cv2.imshow("Frame", frame)
+
+        # Exit on 'q' key press
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+finally:
+    # Clean up
+    picam2.stop()
+    cv2.destroyAllWindows()
+    pwm_x.stop()
+    pwm_y.stop()
+    GPIO.cleanup()
