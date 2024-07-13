@@ -1,0 +1,60 @@
+>Installation process of OpenCV and other dependencies for installation :
+
+-Install dependencies and libraries:
+Code: sudo apt-get update
+      sudo apt-get upgrade
+
+      sudo apt-get install build-essential cmake git pkg-config
+      sudo apt-get install libjpeg-dev libtiff5-dev libjasper-dev libpng-dev
+      sudo apt-get install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev
+      sudo apt-get install libxvidcore-dev libx264-dev
+      sudo apt-get install libgtk2.0-dev libgtk-3-dev
+      sudo apt-get install libatlas-base-dev gfortran
+      sudo apt-get install python3-dev
+      sudo apt-get install python3 python3-pip
+      pip3 install numpy
+
+-clone the OpenCV and OpenCV contrib repositories from GitHub:
+code: cd ~
+      git clone https://github.com/opencv/opencv.git
+      git clone https://github.com/opencv/opencv_contrib.git
+
+-Create a build directory:
+Code: cd ~/OpenCV   
+      mkdir build
+      cd build
+
+-Run CMake
+Code: cmake -D CMAKE_BUILD_TYPE=RELEASE \
+       -D CMAKE_INSTALL_PREFIX=/usr/local \
+       -D INSTALL_PYTHON_EXAMPLES=ON \
+       -D INSTALL_C_EXAMPLES=OFF \
+       -D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib/modules \
+       -D BUILD_EXAMPLES=ON ..
+
+-Compile OpenCV:
+Code: make -j4  # (Adjust according to the number of cores your Raspberry Pi has)
+
+-Install OpenCV:
+Code: sudo make install
+      sudo ldconfig
+
+-Verify Installation :
+Code: python3
+
+
+************Note : If you face any problems while installation of GPIO or Other libraires for raspberry pi  using Pip**********
+
+This might be a possible reason because the pip and the python version doesn't match so the best will be to check the pip version and the python version 
+Here ive fixed this issue by using ( --break-system-packages ) and downgrading the pip version can solve this issues  .
+
+Code:  pip install pip==22.3.1 --break-system-packages
+
+After downgrading you can install using pip with no issues ..............
+
+
+
+
+
+
+
