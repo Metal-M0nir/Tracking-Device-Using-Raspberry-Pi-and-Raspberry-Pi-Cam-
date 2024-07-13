@@ -9,6 +9,7 @@ GPIO.setwarnings(False)
 
 # Servo motor GPIO pins
 servo_pin_x = 17  # Horizontal
+
 servo_pin_y = 27  # Vertical
 
 GPIO.setup(servo_pin_x, GPIO.OUT)
