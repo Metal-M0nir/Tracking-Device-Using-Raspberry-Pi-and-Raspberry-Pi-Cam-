@@ -94,4 +94,4 @@ finally:
     cv2.destroyAllWindows()
     pwm_x.stop()
     pwm_y.stop()
-    GPIO.cleanup()
+    GPIO.cleanup() 
